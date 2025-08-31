@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, type KeyboardEvent } from "react"
+import { useState, useRef, type KeyboardEvent, type MouseEvent } from "react"
 import { X, ChevronDown } from "lucide-react"
 
 interface TagInputProps {
@@ -18,7 +18,12 @@ export function TagInput({
 }: TagInputProps) {
   const [tags, setTags] = useState<string[]>(initialTags)
   const [inputValue, setInputValue] = useState("")
+  const [selectedOption, setSelectedOption] = useState("含む")
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const dropdownOptions = ["含む", "Equalto", "Any"]
 
   const addTag = (tag: string) => {
     const trimmedTag = tag.trim()
@@ -57,17 +62,60 @@ export function TagInput({
     inputRef.current?.focus()
   }
 
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen)
+  }
+
+  const selectOption = (option: string) => {
+    setSelectedOption(option)
+    setIsDropdownOpen(false)
+  }
+
+  const handleClickOutside = (e: MouseEvent) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      setIsDropdownOpen(false)
+    }
+  }
+
+  useState(() => {
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  })
+
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-purple-50 rounded-lg">
       <div className="mb-4">
         <h2 className="text-lg font-medium text-gray-800">発火条件</h2>
       </div>
 
-      <div className="relative mb-4">
-        <div className="flex items-center bg-white border border-gray-300 rounded-md px-3 py-2 min-h-[40px] w-32">
-          <span className="text-gray-700 text-sm">含む</span>
-          <ChevronDown className="w-4 h-4 text-gray-400 ml-auto" />
-        </div>
+      <div className="relative mb-4" ref={dropdownRef}>
+        <button
+          onClick={toggleDropdown}
+          className="flex items-center bg-white border border-gray-300 rounded-md px-3 py-2 min-h-[40px] w-32 hover:bg-gray-50 transition-colors"
+        >
+          <span className="text-gray-700 text-sm">{selectedOption}</span>
+          <ChevronDown
+            className={`w-4 h-4 text-gray-400 ml-auto transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        {isDropdownOpen && (
+          <div className="absolute top-full left-0 mt-1 w-32 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+            {dropdownOptions.map((option) => (
+              <button
+                key={option}
+                onClick={() => selectOption(option)}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                  selectedOption === option ? "bg-blue-50 text-blue-700" : "text-gray-700"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div
@@ -94,16 +142,18 @@ export function TagInput({
             </div>
           ))}
 
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={handleInputBlur}
-            placeholder={tags.length === 0 ? placeholder : ""}
-            className="flex-1 outline-none text-gray-700 placeholder-gray-400 min-w-[120px] py-1"
-          />
+          <select
+            className="bg-transparent border-none outline-none text-gray-700 text-sm cursor-pointer"
+            value={selectedOption}
+            onChange={(e) => setSelectedOption(e.target.value)}
+          >
+            {dropdownOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+
         </div>
       </div>
 
